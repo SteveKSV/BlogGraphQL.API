@@ -4,6 +4,7 @@ using BlogGraphQL.API.Schema.Payloads.PostPayload;
 using BlogGraphQL.API.Schema.Payloads.UserPayload;
 using EntityFramework.Data;
 using EntityFramework.Entities;
+using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogGraphQL.API.Schema.Mutations
@@ -16,6 +17,7 @@ namespace BlogGraphQL.API.Schema.Mutations
         public async Task<AddPostPayload> CreatePostAsync(
             AddPostInput input,
             [ScopedService] BlogDbContext context,
+            [Service] ITopicEventSender eventSender,
             CancellationToken cancellationToken)
         {
             var post = new Post
@@ -28,6 +30,8 @@ namespace BlogGraphQL.API.Schema.Mutations
             context.Posts.Add(post);
 
             await context.SaveChangesAsync(cancellationToken);
+
+            await eventSender.SendAsync(nameof(CreatePostAsync), post, cancellationToken);
 
             return new AddPostPayload(post);
         }
